@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8" />
+    <title>RANDOMLY｜数学演習ランダム出題ツール</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Google Fonts の読み込み -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Megrim&family=Yomogi&display=swap" rel="stylesheet">
+    
+    <!-- スタイルシートの読み込み -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+
+    <!-- MathJax (数式表示ライブラリ) の設定 -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+</head>
+<body>
+    <div class="outer-container">
+        <div class="inner-container">
+
+            <!-- === ヘッダー === -->
+            {% include "header.html" %}
+
+            <main class="container">
+                
+                <!-- ▼▼▼ 青チャートランダムモード ▼▼▼ -->
+                <section id="aochart" class="mode-section">
+                    <h4 class="mode-description">青チャートの問題をランダムに出題します。<br>また、関連する4stepの問題があれば表示します。</h4>
+                    
+                    <div class="content-and-sidebar">
+                        <!-- 左側：問題表示や操作ボタン -->
+                        <div class="main-content">
+                            <button class="main-action-button" onclick="getProblem('1')">問題を選ぶ</button>
+                            <p class="error-message" id="error-message-1" style="display: none;">少なくとも1つの単元をチェックしてください。</p>
+                            <div id="equation_container-1" class="left-align word-wrap"></div>
+                            
+                            <div class="secondary-buttons-container">
+                                <button id="toggle_details-1" class="secondary-action-button" onclick="toggleProblemDetails('1')">問題の詳細を表示</button>
+                                <button id="similar_button-1" style="display: none;">類題を見る</button>
+                                <button id="toggle_history_button-1" class="secondary-action-button" onclick="toggleHistory('1')">履歴を表示</button>
+                            </div>
+
+                            <p class="left-align" id="problem_details-1" style="display: none;">
+                                単元名: <span id="unit_name-1"></span><br />
+                                問題番号: <span id="problem_number-1"></span><br />
+                                難易度: <span id="difficulty_level-1"></span>
+                            </p>
+
+                            <!-- DB類題表示エリア（黄色いブロック） -->
+                            <div id="similar_container-1" class="db-similar-area" style="display: none;"></div>
+                            
+                            <!-- 出題履歴 -->
+                            <div id="history_section-1" class="history_section" style="display: none;">
+                                <h3>出題履歴</h3>
+                                <div class="history-table-container">
+                                    <table>
+                                        <thead><tr><th>#</th><th>問題番号</th><th>問題文（冒頭）</th></tr></thead>
+                                        <tbody id="history_table_body-1"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 右側：各種設定サイドバー -->
+                        <div class="sidebar" id="sidebar-1">
+                            <aside>
+                                <p class="left-align">★問題集を選択</p>
+                                <div class="content-text" style="background-color: transparent; padding-left: 0;">
+                                    <label class="simple-toggle-switch"><input type="radio" name="book_select-1" value="all" checked><span class="toggle-text">青チャすべて</span></label>
+                                    <label class="simple-toggle-switch"><input type="radio" name="book_select-1" value="chart"><span class="toggle-text">青チャ例題</span></label>
+                                    <label class="simple-toggle-switch"><input type="radio" name="book_select-1" value="ex"><span class="toggle-text">青チャEXERCISES</span></label>
+                                </div>
+                            </aside>
+                            
+                            <aside>
+                                <p class="left-align">★単元を選択</p>
+                                <div class="accordion" id="unit-accordion-1">
+                                    <div class="accordion-item"><div class="title"><span class="title-text">数学I</span><label class="parent-toggle-switch"><input type="checkbox" class="unit-toggle" data-target="math1-checkboxes-1" checked><span class="slider"></span></label><div class="arrow-wrapper"><span class="arrow-icon">▼</span></div></div><div class="content" id="math1-checkboxes-1"><div class="content-text"><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数I数と式" checked><span class="toggle-text">数と式</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数I集合と命題" checked><span class="toggle-text">集合と命題</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数I2次関数" checked><span class="toggle-text">2次関数</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数I図形と計量" checked><span class="toggle-text">図形と計量</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数Iデータの分析" checked><span class="toggle-text">データの分析</span></label></div></div></div>
+                                    <div class="accordion-item"><div class="title"><span class="title-text">数学A</span><label class="parent-toggle-switch"><input type="checkbox" class="unit-toggle" data-target="mathA-checkboxes-1" checked><span class="slider"></span></label><div class="arrow-wrapper"><span class="arrow-icon">▼</span></div></div><div class="content" id="mathA-checkboxes-1"><div class="content-text"><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数A場合の数" checked><span class="toggle-text">場合の数</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数A確率" checked><span class="toggle-text">確率</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数A図形の性質" checked><span class="toggle-text">図形の性質</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数A数学と人間の活動"><span class="toggle-text">数学と人間の活動（準備中）</span></label></div></div></div>
+                                    <div class="accordion-item"><div class="title"><span class="title-text">数学II</span><label class="parent-toggle-switch"><input type="checkbox" class="unit-toggle" data-target="math2-checkboxes-1" checked><span class="slider"></span></label><div class="arrow-wrapper"><span class="arrow-icon">▼</span></div></div><div class="content" id="math2-checkboxes-1"><div class="content-text"><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数II式と証明" checked><span class="toggle-text">式と証明</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数II複素数と方程式" checked><span class="toggle-text">複素数と方程式</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数II図形と方程式" checked><span class="toggle-text">図形と方程式</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数II三角関数" checked><span class="toggle-text">三角関数</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数II指数関数と対数関数" checked><span class="toggle-text">指数関数と対数関数</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数II微分法" checked><span class="toggle-text">微分法</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数II積分法" checked><span class="toggle-text">積分法</span></label></div></div></div>
+                                    <div class="accordion-item"><div class="title"><span class="title-text">数学B</span><label class="parent-toggle-switch"><input type="checkbox" class="unit-toggle" data-target="mathB-checkboxes-1" checked><span class="slider"></span></label><div class="arrow-wrapper"><span class="arrow-icon">▼</span></div></div><div class="content" id="mathB-checkboxes-1"><div class="content-text"><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数B数列" checked><span class="toggle-text">数列</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数B統計的な推測" checked><span class="toggle-text">統計的な推測</span></label></div></div></div>
+                                    <div class="accordion-item"><div class="title"><span class="title-text">数学III</span><label class="parent-toggle-switch"><input type="checkbox" class="unit-toggle" data-target="math3-checkboxes-1" checked><span class="slider"></span></label><div class="arrow-wrapper"><span class="arrow-icon">▼</span></div></div><div class="content" id="math3-checkboxes-1"><div class="content-text"><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数III関数" checked><span class="toggle-text">関数</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数III極限" checked><span class="toggle-text">極限</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数III微分法" checked><span class="toggle-text">微分法</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数III微分法の応用" checked><span class="toggle-text">微分法の応用</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数III積分法" checked><span class="toggle-text">積分法</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数III積分法の応用" checked><span class="toggle-text">積分法の応用</span></label></div></div></div>
+                                    <div class="accordion-item"><div class="title"><span class="title-text">数学C</span><label class="parent-toggle-switch"><input type="checkbox" class="unit-toggle" data-target="mathC-checkboxes-1" checked><span class="slider"></span></label><div class="arrow-wrapper"><span class="arrow-icon">▼</span></div></div><div class="content" id="mathC-checkboxes-1"><div class="content-text"><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数C平面上のベクトル" checked><span class="toggle-text">平面上のベクトル</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数C空間のベクトル" checked><span class="toggle-text">空間のベクトル</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数C複素数平面" checked><span class="toggle-text">複素数平面</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数C式と曲線" checked><span class="toggle-text">式と曲線</span></label></div></div></div>
+                                </div>
+                            </aside>
+                            
+                            <aside>
+                                <p class="left-align">★難易度を選択</p>
+                                <div class="accordion-difficult">
+                                    <div class="content" id="difficult-1">
+                                        <div class="content-text">
+                                            <label class="parent-toggle-switch"><input type="checkbox" class="unit-checkbox" data-difficulty="1" checked><span class="toggle-text">★☆☆☆☆（教科書の例レベル）</span></label>
+                                            <label class="parent-toggle-switch"><input type="checkbox" class="unit-checkbox" data-difficulty="2" checked><span class="toggle-text">★★☆☆☆（教科書の例題レベル）</span></label>
+                                            <label class="parent-toggle-switch"><input type="checkbox" class="unit-checkbox" data-difficulty="3" checked><span class="toggle-text">★★★☆☆（教科書の節末・章末レベル）</span></label>
+                                            <label class="parent-toggle-switch"><input type="checkbox" class="unit-checkbox" data-difficulty="4" checked><span class="toggle-text">★★★★☆（入試の基本～標準レベル）</span></label>
+                                            <label class="parent-toggle-switch"><input type="checkbox" class="unit-checkbox" data-difficulty="5" checked><span class="toggle-text">★★★★★（入試の標準～やや難レベル）</span></label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </aside>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- ▼▼▼ 4stepランダムモード ▼▼▼ -->
+                <section id="step4" class="mode-section" style="display: none;">
+                    <h4 class="mode-description">4stepの問題をランダムに出題します。<br>また、関連する青チャートの問題があれば表示します。</h4>
+                    <div class="content-and-sidebar">
+                        <div class="main-content">
+                            <button class="main-action-button" onclick="getProblem('2')">問題を選ぶ</button>
+                            <p class="error-message" id="error-message-2" style="display: none;">少なくとも1つの単元をチェックしてください。</p>
+                            <div id="equation_container-2" class="left-align word-wrap"></div>
+                            <div class="secondary-buttons-container">
+                                <button id="toggle_details-2" class="secondary-action-button" onclick="toggleProblemDetails('2')">問題の詳細を表示</button>
+                                <button id="similar_button-2" style="display: none;">類題を見る</button>
+                                <button id="toggle_history_button-2" class="secondary-action-button" onclick="toggleHistory('2')">履歴を表示</button>
+                            </div>
+                            <p class="left-align" id="problem_details-2" style="display: none;">
+                                単元名: <span id="unit_name-2"></span><br />
+                                問題番号: <span id="problem_number-2"></span><br />
+                                難易度: <span id="difficulty_level-2"></span>
+                            </p>
+                            <div id="similar_container-2" class="db-similar-area" style="display: none;"></div>
+                            <div id="history_section-2" class="history_section" style="display: none;">
+                                <h3>出題履歴</h3>
+                                <div class="history-table-container">
+                                    <table>
+                                        <thead><tr><th>#</th><th>問題番号</th><th>問題文（冒頭）</th></tr></thead>
+                                        <tbody id="history_table_body-2"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="sidebar" id="sidebar-2">
+                             <aside>
+                                <p class="left-align">★単元を選択</p>
+                                <div class="accordion" id="unit-accordion-2">
+                                    <div class="accordion-item"><div class="title"><span class="title-text">数学I</span><label class="parent-toggle-switch"><input type="checkbox" class="unit-toggle" data-target="math1-checkboxes-2" checked><span class="slider"></span></label><div class="arrow-wrapper"><span class="arrow-icon">▼</span></div></div><div class="content" id="math1-checkboxes-2"><div class="content-text"><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数I数と式" checked><span class="toggle-text">数と式</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数I集合と命題" checked><span class="toggle-text">集合と命題</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数I2次関数" checked><span class="toggle-text">2次関数</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数I図形と計量" checked><span class="toggle-text">図形と計量</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数Iデータの分析" checked><span class="toggle-text">データの分析</span></label></div></div></div>
+                                    <div class="accordion-item"><div class="title"><span class="title-text">数学A</span><label class="parent-toggle-switch"><input type="checkbox" class="unit-toggle" data-target="mathA-checkboxes-2" checked><span class="slider"></span></label><div class="arrow-wrapper"><span class="arrow-icon">▼</span></div></div><div class="content" id="mathA-checkboxes-2"><div class="content-text"><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数A場合の数" checked><span class="toggle-text">場合の数</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数A確率" checked><span class="toggle-text">確率</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数A図形の性質" checked><span class="toggle-text">図形の性質</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数A数学と人間の活動"><span class="toggle-text">数学と人間の活動（準備中）</span></label></div></div></div>
+                                    <div class="accordion-item"><div class="title"><span class="title-text">数学II</span><label class="parent-toggle-switch"><input type="checkbox" class="unit-toggle" data-target="math2-checkboxes-2" checked><span class="slider"></span></label><div class="arrow-wrapper"><span class="arrow-icon">▼</span></div></div><div class="content" id="math2-checkboxes-2"><div class="content-text"><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数II式と証明" checked><span class="toggle-text">式と証明</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数II複素数と方程式" checked><span class="toggle-text">複素数と方程式</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数II図形と方程式" checked><span class="toggle-text">図形と方程式</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数II三角関数" checked><span class="toggle-text">三角関数</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数II指数関数と対数関数" checked><span class="toggle-text">指数関数と対数関数</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数II微分法と積分法" checked><span class="toggle-text">微分法と積分法</span></label></div></div></div>
+                                    <div class="accordion-item"><div class="title"><span class="title-text">数学B</span><label class="parent-toggle-switch"><input type="checkbox" class="unit-toggle" data-target="mathB-checkboxes-2" checked><span class="slider"></span></label><div class="arrow-wrapper"><span class="arrow-icon">▼</span></div></div><div class="content" id="mathB-checkboxes-2"><div class="content-text"><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数B数列" checked><span class="toggle-text">数列</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数B統計的な推測" checked><span class="toggle-text">統計的な推測</span></label></div></div></div>
+                                    <div class="accordion-item"><div class="title"><span class="title-text">数学III</span><label class="parent-toggle-switch"><input type="checkbox" class="unit-toggle" data-target="math3-checkboxes-2" checked><span class="slider"></span></label><div class="arrow-wrapper"><span class="arrow-icon">▼</span></div></div><div class="content" id="math3-checkboxes-2"><div class="content-text"><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数III関数" checked><span class="toggle-text">関数</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数III極限" checked><span class="toggle-text">極限</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数III微分法" checked><span class="toggle-text">微分法</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数III積分法の応用" checked><span class="toggle-text">積分法の応用</span></label></div></div></div>
+                                    <div class="accordion-item"><div class="title"><span class="title-text">数学C</span><label class="parent-toggle-switch"><input type="checkbox" class="unit-toggle" data-target="mathC-checkboxes-2" checked><span class="slider"></span></label><div class="arrow-wrapper"><span class="arrow-icon">▼</span></div></div><div class="content" id="mathC-checkboxes-2"><div class="content-text"><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数C平面上のベクトル" checked><span class="toggle-text">平面上のベクトル</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数C空間のベクトル" checked><span class="toggle-text">空間のベクトル</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数C複素数平面" checked><span class="toggle-text">複素数平面</span></label><label class="simple-toggle-switch"><input type="checkbox" class="unit-checkbox" data-value="数C式と曲線" checked><span class="toggle-text">式と曲線</span></label></div></div></div>
+                                </div>
+                            </aside>
+                            <aside>
+                                <p class="left-align">★難易度を選択</p>
+                                <div class="accordion-difficult">
+                                    <div class="content" id="difficult-2">
+                                        <div class="content-text">
+                                            <label class="parent-toggle-switch"><input type="checkbox" class="unit-checkbox" data-difficulty="A" checked><span class="toggle-text">A</span></label>
+                                            <label class="parent-toggle-switch"><input type="checkbox" class="unit-checkbox" data-difficulty="B" checked><span class="toggle-text">B</span></label>
+                                            <label class="parent-toggle-switch"><input type="checkbox" class="unit-checkbox" data-difficulty="発展" checked><span class="toggle-text">発展</span></label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </aside>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ▼▼▼ 選択モード ▼▼▼ -->
+                <section id="selection" class="mode-section" style="display: none;">
+                    <h4 class="mode-description">選択した問題と関連する類題を表示します。<br>また、数値のみ変えた類題をAIで生成できます。</h4>
+                    <div class="selection-mode">
+                        
+                        <div class="selection-row">
+                            <div class="selection-item">
+                                <label for="select_book_type">問題集を選択：</label>
+                                <select id="select_book_type">
+                                    <option value="chart">青チャート</option>
+                                    <option value="ex">EXERCISES</option>
+                                    <option value="4step">4step</option>
+                                </select>
+                            </div>
+                            <div class="selection-item">
+                                <label for="unit_select_chart">単元を選択：</label>
+                                <select id="unit_select_chart"></select>
+                            </div>
+                            <div class="selection-item">
+                                <label for="problem_number_input">問題番号を入力：</label>
+                                <input id="problem_number_input" type="number" placeholder="例: 1~35">
+                            </div>
+                        </div>
+                        
+                        <button class="main-action-button" onclick="getSelectedProblem()">問題を表示</button>
+
+                        <div class="selected-problem-display">
+                            <p class="left-align">
+                                問題番号: <span id="selected_problem_number"></span><br />
+                                難易度: <span id="selected_difficulty_display"></span>
+                            </p>
+                            <div id="selected_equation_container" class="left-align word-wrap"></div>
+                        </div>
+
+                        <div class="secondary-buttons-container">
+                            <button id="similar_button-selected" style="display: none;">類題を見る</button>
+                            <button id="generate-ai-problem-btn" class="secondary-action-button" style="display: none; background-color: #6a5acd;">
+                                <i class="fas fa-magic"></i> AIで類題を作る
+                            </button>
+                        </div>
+
+                        <div id="similar_container-selected" class="db-similar-area" style="display: none;"></div>
+          
+                        <div id="ai-generated-problem-area" style="display: none;">
+                            <h4><i class="fas fa-robot"></i> AIが生成した類題</h4>
+                            <div id="ai-problem-container" class="left-align word-wrap"></div>
+                            <button id="ai-answer-btn" class="main-action-button" style="display: none; background-color: #28a745; margin-top: 15px;">答えと解説を見る</button>
+                            <div id="ai-answer-container" class="ai-answer-box" style="display: none;"></div>
+                        </div>
+
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <script type="module" src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

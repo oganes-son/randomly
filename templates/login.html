@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>ログイン</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link href="https://fonts.googleapis.com/css2?family=Yomogi&display=swap" rel="stylesheet" />
+</head>
+<body class="login">
+  <div class="login-container">
+    <h2>パスワードを入力してください</h2>
+    <form method="POST" action="/login">
+      <input type="password" name="password" placeholder="パスワード" required />
+      <button type="submit">ログイン</button>
+    </form>
+    {% if error %}
+      <p style="color: red;">パスワードが違います。</p>
+    {% endif %}
+  </div>
+  <script type="module" src="{{ url_for('static', filename='script.js') }}"></script>
+
+</body>
+</html>
