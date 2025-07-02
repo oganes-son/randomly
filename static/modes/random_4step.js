@@ -3,7 +3,8 @@ import {
   sanitizeLatexEquation,
   applyDisplayStyle,
   formatDifficultyStars,
-  getEquationSnippet
+  getEquationSnippet,
+  formatPunctuation // ★追加：formatPunctuation関数をインポート
 } from "../utils/helpers.js";
 
 export function getProblemFrom4step() {
