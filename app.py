@@ -7,6 +7,7 @@ from flask import Flask, render_template, redirect, session, request, url_for, j
 import google.generativeai as genai
 
 # --- 1. 初期設定：.envファイルの読み込み ---
+# このファイルの絶対パスを基準に.envファイルの場所を特定し、確実に読み込みます
 project_folder = os.path.dirname(os.path.abspath(__file__))
 dotenv_path = os.path.join(project_folder, '.env')
 load_dotenv(dotenv_path=dotenv_path)
@@ -16,6 +17,7 @@ app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
 # --- 3. Gemini APIキーの設定 ---
+# .envファイルから読み込まれた環境変数を取得します
 api_key = os.environ.get("GEMINI_API_KEY")
 if api_key:
     genai.configure(api_key=api_key)
@@ -24,6 +26,7 @@ else:
     print("警告: 環境変数 'GEMINI_API_KEY' が設定されていません。AI機能は利用できません。")
 
 # --- 4. Blueprintの登録 ---
+# FlaskアプリとAPIキーが設定された後に、各モジュールをインポートします
 from handlers.random_aochart import aochart_bp
 from handlers.random_4step import step4_bp
 from handlers.selected_mode import selected_mode_bp
@@ -42,9 +45,11 @@ COL_IMAGE_FLAG       = 5
 COL_SIMILAR          = 6
 
 def normalize(s):
+    """文字列を正規化（全角→半角、大文字化、前後空白除去）する"""
     return unicodedata.normalize("NFKC", str(s)).strip().upper()
 
 def load_df(path):
+    """ExcelファイルをPandas DataFrameとして読み込む。全列を文字列として扱う。"""
     if not os.path.exists(path):
         raise FileNotFoundError(f"データファイルが見つかりません: {path}")
     df = pd.read_excel(path, dtype=str)
@@ -53,10 +58,12 @@ def load_df(path):
 # --- 6. ルーティング ---
 @app.route("/")
 def index():
+    """トップページ。ログイン状態に応じてリダイレクトする。"""
     return redirect(url_for("home") if session.get("logged_in") else url_for("login"))
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
+    """ログイン処理を行う。"""
     if request.method == "POST" and request.form.get("password") == "sugaku":
         session["logged_in"] = True
         return redirect(url_for("home"))
@@ -64,12 +71,17 @@ def login():
 
 @app.route("/home")
 def home():
+    """メインページを表示する。"""
     if not session.get("logged_in"):
         return redirect(url_for("login"))
     return render_template("main.html")
 
 @app.route("/get_similar_problems", methods=["POST"])
 def get_similar_problems():
+    """
+    すべてのモードから呼び出される、類題検索のメイン機能。
+    指定された単元を同一とみなし、関連する問題を探して返す。
+    """
     if not session.get("logged_in"):
         return jsonify({"error": "ログインしていません"}), 403
     
@@ -105,49 +117,36 @@ def get_similar_problems():
         row_query = (df_4step.iloc[:, COL_UNIT_NAME] == unit) & (df_4step.iloc[:, COL_PROBLEM_NUMBER] == number)
         row = df_4step[row_query]
         
-        if not row.empty and COL_SIMILAR < df_4step.shape[1]:
-            similar_raw = row.iloc[0].iloc[COL_SIMILAR]
-            if similar_raw:
-                ids = [normalize(s) for s in similar_raw.split(",")]
-                for sid in ids:
-                    base_num = ''.join(c for c in sid if c.isdigit())
-                    df_target = df_ex if sid.startswith("EXERCISES") else df_chart
-                    cond = (df_target.iloc[:, COL_UNIT_NAME].isin(search_units)) & \
-                           (df_target.iloc[:, COL_PROBLEM_NUMBER] == base_num)
-                    match = df_target[cond]
-                    for _, r in match.iterrows():
-                        result_item = {"unit_name": r.iloc[COL_UNIT_NAME], "problem_number": sid, "book": "ex" if df_target is df_ex else "chart", "difficulty": r.iloc[COL_DIFFICULTY], "equation": r.iloc[COL_PROBLEM_TEXT]}
-                        image_flag = int(r.iloc[COL_IMAGE_FLAG]) if r.iloc[COL_IMAGE_FLAG].isdigit() else 0
-                        if image_flag == 1:
-                            subject = r.iloc[COL_SUBJECT_NAME]
-                            book_prefix = "ex" if df_target is df_ex else "chart"
-                            result_item["image_path"] = f"static/images/{book_prefix}{subject}_{base_num}.png"
-                        results.append(result_item)
+        if not row.empty and COL_SIMILAR < df_4step.shape[1] and (similar_raw := row.iloc[0].iloc[COL_SIMILAR]):
+            for sid in [normalize(s) for s in similar_raw.split(",")] :
+                base_num = ''.join(c for c in sid if c.isdigit())
+                df_target = df_ex if sid.startswith("EXERCISES") else df_chart
+                match = df_target[(df_target.iloc[:, COL_UNIT_NAME].isin(search_units)) & (df_target.iloc[:, COL_PROBLEM_NUMBER] == base_num)]
+                for _, r in match.iterrows():
+                    result_item = {"unit_name": r.iloc[COL_UNIT_NAME], "problem_number": sid, "book": "ex" if df_target is df_ex else "chart", "difficulty": r.iloc[COL_DIFFICULTY], "equation": r.iloc[COL_PROBLEM_TEXT]}
+                    if (image_flag := int(r.iloc[COL_IMAGE_FLAG]) if r.iloc[COL_IMAGE_FLAG].isdigit() else 0) == 1:
+                        subject = r.iloc[COL_SUBJECT_NAME]
+                        book_prefix = "ex" if df_target is df_ex else "chart"
+                        result_item["image_path"] = f"static/images/{book_prefix}{subject}_{base_num}.png"
+                    results.append(result_item)
     
     elif source_mode == "aochart" or (source_mode == "selection" and book in ["chart", "ex"]):
-        label = normalize(f"EXERCISES {number}") if book == "ex" else normalize(number)
-        alt_label = normalize(f"{unit}{number}")
-        
+        label, alt_label = normalize(f"EXERCISES {number}") if book == "ex" else normalize(number), normalize(f"{unit}{number}")
         target_4step_df = df_4step[df_4step.iloc[:, COL_UNIT_NAME].isin(search_units)]
-        
         for _, r in target_4step_df.iterrows():
-            raw_similar_field = r.iloc[COL_SIMILAR]
-            if raw_similar_field:
-                entries = [normalize(s) for s in raw_similar_field.split(",")]
-                if label in entries or alt_label in entries:
-                    problem_num_4step = r.iloc[COL_PROBLEM_NUMBER]
-                    result_item = {"unit_name": r.iloc[COL_UNIT_NAME], "problem_number": problem_num_4step, "book": "4step", "difficulty": r.iloc[COL_DIFFICULTY], "equation": r.iloc[COL_PROBLEM_TEXT]}
-                    image_flag = int(r.iloc[COL_IMAGE_FLAG]) if r.iloc[COL_IMAGE_FLAG].isdigit() else 0
-                    if image_flag == 1:
-                        subject = r.iloc[COL_SUBJECT_NAME]
-                        book_prefix = "step"
-                        result_item["image_path"] = f"static/images/{book_prefix}{subject}_{problem_num_4step}.png"
-                    results.append(result_item)
+            if (raw_similar_field := r.iloc[COL_SIMILAR]) and any(tag in [normalize(s) for s in raw_similar_field.split(",")] for tag in [label, alt_label]):
+                problem_num_4step = r.iloc[COL_PROBLEM_NUMBER]
+                result_item = {"unit_name": r.iloc[COL_UNIT_NAME], "problem_number": problem_num_4step, "book": "4step", "difficulty": r.iloc[COL_DIFFICULTY], "equation": r.iloc[COL_PROBLEM_TEXT]}
+                if (image_flag := int(r.iloc[COL_IMAGE_FLAG]) if r.iloc[COL_IMAGE_FLAG].isdigit() else 0) == 1:
+                    subject = r.iloc[COL_SUBJECT_NAME]
+                    result_item["image_path"] = f"static/images/step{subject}_{problem_num_4step}.png"
+                results.append(result_item)
     
     return jsonify({"similar_problems": results})
 
 @app.route('/generate_similar_problem', methods=['POST'])
 def generate_similar_problem():
+    """AIを使って類題を生成する。"""
     if not api_key:
         return jsonify({"error": "サーバー側でAI用のAPIキーが設定されていません。"}), 500
     if not session.get("logged_in"):
@@ -160,7 +159,6 @@ def generate_similar_problem():
     if not original_problem:
         return jsonify({"error": "問題文が空です"}), 400
 
-    # ★追加：証明問題かを判定し、該当する場合はエラーを返して処理を終了
     if "証明せよ" in original_problem or "示せ" in original_problem:
         return jsonify({"error": "証明問題は類題を生成できません"}), 400
 
@@ -175,7 +173,6 @@ def generate_similar_problem():
 {history_list_str}
 """
     
-    # ★★★プロンプトを最新版に更新★★★
     prompt = f"""
 あなたは、日本の高校生向けの高品質な数学教材を作成する、極めて優秀で細心な専門家です。あなたの任務は、与えられたLaTeX形式の問題文を分析し、教育的価値と数学的な正確性が完全に保証された「類題」を生成することです。
 
@@ -212,8 +209,8 @@ def generate_similar_problem():
 - **対数(log)の表記**: 日本の高校数学の慣習に従ってください。自然対数は `ln` とは表記せず、底を省略した `log(x)` と表記してください。底が `e` 以外の場合のみ、`log_2(x)` のように底を明記してください。
 - **LaTeXの書式**:
     - 全ての数式は、MathJaxで正しくレンダリングできる、標準的なLaTeXの書式で記述してください。
-    - インライン数式は `\\(...\\)` または `$ ... $` で囲んでください。
-    - ディスプレイ数式（独立した行の数式）は `$$...$$` または `\\[...\\]` で囲んでください。
+    - インライン数式は `\\(...\\)` で囲んでください。
+    - ディスプレイ数式（独立した行の数式）は `\\[...\\]` で囲んでください。
     - `¥` (円マーク) はバックスラッシュの代わりとして**絶対に使用しないでください**。必ず `\\` (バックスラッシュ) を使用してください。
 
 ### 【数学関数の使用制限】
@@ -231,26 +228,19 @@ def generate_similar_problem():
 # 元の問題文:
 {original_problem}
 """
-    # ★追加：最大3回まで処理を試みるリトライロジック
     MAX_RETRIES = 3
     for attempt in range(MAX_RETRIES):
         try:
             model = genai.GenerativeModel('gemini-1.5-flash-latest')
             generation_config = genai.types.GenerationConfig(response_mime_type="application/json")
             response = model.generate_content(prompt, generation_config=generation_config)
-            
             response_text = response.text.replace('¥', '\\')
-            
-            # 成功すれば、結果を返してループを抜ける
             return json.loads(response_text)
-
         except Exception as e:
             print(f"AI生成試行 {attempt + 1}/{MAX_RETRIES} 回目失敗: {e}")
-            # ループの最後でも失敗した場合のみ、最終的なエラーを返す
             if attempt + 1 == MAX_RETRIES:
                 return jsonify({"error": "AIによる類題の生成に失敗しました。しばらくしてからもう一度お試しください。"}), 500
 
 # --- 7. サーバーの起動 ---
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5000, debug=True)
-
