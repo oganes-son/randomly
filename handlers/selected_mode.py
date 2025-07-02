@@ -125,13 +125,31 @@ def get_selected_problem():
                     # 参照リストに、探している問題のラベルが含まれていればカウントアップ
                     if label in entries or alt_label in entries:
                         similar_count += 1
-                        
-    # --- 6. 結果をJSONで返す ---
-    return jsonify({
+
+    # ★修正：レスポンス用の辞書を正しく作成
+    response_data = {
         "unit_name": unit,
         "problem_number": number,
         "difficulty": difficulty,
-        "equation": problem_text,
+        "equation": problem_text, # <-- 修正1: 正しい変数名 `problem_text` を使用
         "image_flag": image_flag,
         "similar_count": similar_count
-    })
+    }
+
+    # image_flagが1の場合、画像のパスを生成してレスポンスに追加
+    if image_flag == 1:
+        subject = p.iloc[COL_SUBJECT_NAME]
+        
+        # <-- 修正2: '4step'の場合のprefixを追加
+        if book == '4step':
+            book_prefix = 'step'
+        elif book == 'ex':
+            book_prefix = 'ex'
+        else:
+            book_prefix = 'chart'
+
+        image_path = f"static/images/{book_prefix}{subject}_{number}.png"
+        response_data["image_path"] = image_path
+    
+    # ★修正3：正しく構築したresponse_dataのみを返す
+    return jsonify(response_data)

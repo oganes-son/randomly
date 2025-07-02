@@ -25,6 +25,37 @@ document.addEventListener("DOMContentLoaded", () => {
   unitSelect?.addEventListener("change", updateNumberRangeHint);
 });
 
+// ★修正: DOMContentLoadedイベントリスナーを追加し、ボタンの処理を記述
+document.addEventListener("DOMContentLoaded", () => {
+    const prevBtn = document.getElementById('prev-problem-btn');
+    const nextBtn = document.getElementById('next-problem-btn');
+    const numberInput = document.getElementById('problem_number_input');
+
+    // 「前の問題」ボタンがクリックされた時の処理
+    prevBtn?.addEventListener('click', () => {
+        let currentNumber = parseInt(numberInput.value, 10);
+        // 数値でない、または1以下の場合は何もしない
+        if (isNaN(currentNumber) || currentNumber <= 1) {
+            return; 
+        }
+        numberInput.value = currentNumber - 1;
+        // 問題取得関数を呼び出す
+        getSelectedProblem();
+    });
+
+    // 「次の問題」ボタンがクリックされた時の処理
+    nextBtn?.addEventListener('click', () => {
+        let currentNumber = parseInt(numberInput.value, 10);
+        // 数値でない場合は1として扱う
+        if (isNaN(currentNumber)) {
+            currentNumber = 0;
+        }
+        numberInput.value = currentNumber + 1;
+        // 問題取得関数を呼び出す
+        getSelectedProblem();
+    });
+});
+
 function populateUnitOptions() {
   const book = document.getElementById("select_book_type")?.value;
   const unitSelect = document.getElementById("unit_select_chart");

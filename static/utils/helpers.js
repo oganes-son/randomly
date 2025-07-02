@@ -43,7 +43,6 @@ export function formatWithBreaks(raw) {
 
   const patterns = [
     { type: "round", regex: /\((1[0-9]|20|[1-9])\)/g },
-    { type: "circled", regex: /[①-⑳]/g },
     { type: "kana", regex: /\([ア-ン]\)/g }
   ];
 
@@ -67,7 +66,9 @@ export function formatWithBreaks(raw) {
         const isIgnored = prev.match(/[a-zA-Z0-9_）)]/) || prev === "\\" || isBackref;
 
         if (!isIgnored) {
-          result += "<br>";
+          if (!isIgnored) {
+            result += "<br>";
+          }
           if (type === "kana") result += "&emsp;";
           else if (lastType && lastType !== type) result += "&emsp;";
           lastType = type;
@@ -102,9 +103,35 @@ export function getEquationSnippet(equation, maxLength = 50) {
 
 // displaystyle付加（分数・Σ・積分のみ）
 export function applyDisplayStyle(latex) {
-  return latex
-    .replace(/\\displaystyle\s*\\(frac|sum|int)/g, "\\$1") // 二重定義の重複除去
-    .replace(/(?<!\\displaystyle\s*)\\frac/g, "\\displaystyle\\frac")
-    .replace(/(?<!\\displaystyle\s*)\\sum/g, "\\displaystyle\\sum")
-    .replace(/(?<!\\displaystyle\s*)\\int/g, "\\displaystyle\\int");
+  return latex;
+}
+
+
+
+/**
+ * ★追加：数式内外を判定しながら、日本語の読点「、」を置換する関数
+ * @param {string} text - 元のテキスト
+ * @returns {string} - 置換後のテキスト
+ */
+export function formatPunctuation(text) {
+    let result = '';
+    let inMath = false;
+    // 数式デリミタ ($$, $, \[, \], \(, \)) と読点「、」で文字列を分割
+    const tokens = text.split(/(\$\$|\$|\\\[|\\\]|\\\(|\\\)|、)/);
+
+    for (const token of tokens) {
+        if (token === '$$' || token === '$' || token === '\\[' || token === '\\(') {
+            inMath = true;
+        } else if (token === '$$' || token === '$' || token === '\\]' || token === '\\)') {
+            inMath = false;
+        }
+
+        if (token === '、') {
+            // 数式内なら「, \quad 」、外なら「, 」に置換
+            result += inMath ? ', \\quad ' : ', ';
+        } else {
+            result += token;
+        }
+    }
+    return result;
 }

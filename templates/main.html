@@ -201,7 +201,11 @@
                             </div>
                         </div>
                         
-                        <button class="main-action-button" onclick="getSelectedProblem()">問題を表示</button>
+                        <div class="main-button-group">
+                            <button id="prev-problem-btn" class="secondary-action-button prev-next-btn">◀ 前の問題</button>
+                            <button class="main-action-button" onclick="getSelectedProblem()">問題を表示</button>
+                            <button id="next-problem-btn" class="secondary-action-button prev-next-btn">次の問題 ▶</button>
+                        </div>
 
                         <div class="selected-problem-display">
                             <p class="left-align">

@@ -92,7 +92,22 @@ window.showSimilarProblems = function (sourceMode, unitName, problemNumber, book
         const formatted = applyDisplayStyle(formatWithBreaks(sanitizeLatexEquation(item.equation)));
         const block = document.createElement("div");
         block.classList.add("similar-block");
-        block.innerHTML = `<h4>類題 ${idx + 1}</h4><p>単元：${item.unit_name}</p><p>問題番号：${numberLabel}</p><p>難易度：${difficulty}</p><div class="tex2jax_process">${formatted}</div><hr>`;
+        
+        // ★追加：画像表示用のHTMLを条件付きで生成
+        let imageHtml = '';
+        if (item.image_path) {
+            imageHtml = `<img src="${item.image_path}" class="problem-image" alt="類題の図">`;
+        }
+
+        block.innerHTML = `
+          <h4>類題 ${idx + 1}</h4>
+          <p>単元：${item.unit_name}</p>
+          <p>問題番号：${numberLabel}</p>
+          <p>難易度：${difficulty}</p>
+          <div class="tex2jax_process">${formatted}</div>
+          ${imageHtml} 
+          <hr>
+        `; // ★修正：生成した画像HTMLを挿入
         container.appendChild(block);
       });
 

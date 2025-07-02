@@ -62,11 +62,23 @@ def get_problem_4step():
             )
             similar_count += df_target[cond].shape[0]
 
-    return jsonify({
+    # ★修正：レスポンス用の辞書を正しく作成
+    response_data = {
         "unit_name": unit,
         "problem_number": number,
         "difficulty": difficulty,
         "equation": equation,
         "image_flag": image_flag,
         "similar_count": similar_count
-    })
+    }
+
+    # image_flagが1の場合、画像のパスを生成してレスポンスに追加
+    if image_flag == 1:
+        subject = p.iloc[COL_SUBJECT_NAME]
+        # <-- 修正1: このファイルでは常に'4step'なので、prefixは'step'で固定
+        book_prefix = "step"
+        image_path = f"static/images/{book_prefix}{subject}_{number}.png"
+        response_data["image_path"] = image_path
+
+    # ★修正2：正しく構築したresponse_dataのみを返す
+    return jsonify(response_data)

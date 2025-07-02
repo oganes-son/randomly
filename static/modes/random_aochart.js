@@ -67,10 +67,29 @@ export function getProblemFromAochart() {
       document.getElementById(`difficulty_level-${modeId}`).innerText = formatDifficultyStars(data.difficulty);
 
       const container = document.getElementById(`equation_container-${modeId}`);
-      const raw = sanitizeLatexEquation(data.equation);
-      const formatted = applyDisplayStyle(formatWithBreaks(raw));
+      // ★修正：問題を表示する前にコンテナをクリア（古い画像などを消す）
+      container.innerHTML = ''; 
 
-      container.innerHTML = `<div class="tex2jax_process">${formatted}</div>`;
+      // ★修正：新しいテキスト整形処理の呼び出し順
+      const raw = sanitizeLatexEquation(data.equation);
+      const punctuated = formatPunctuation(raw); // ← 句読点置換を追加
+      const formatted = formatWithBreaks(punctuated); // ← 改行処理
+
+      // 問題文をコンテナに挿入
+      const problemDiv = document.createElement('div');
+      problemDiv.className = 'tex2jax_process';
+      problemDiv.innerHTML = formatted;
+      container.appendChild(problemDiv);
+
+      // ★追加：画像パスがあれば、画像要素を作成して追加
+      if (data.image_path) {
+          const img = document.createElement('img');
+          img.src = data.image_path;
+          img.className = 'problem-image'; // CSSでスタイルを適用するため
+          img.alt = '問題の図';
+          container.appendChild(img);
+      }
+
       MathJax.typesetPromise([container]);
 
       const table = document.getElementById(`history_table_body-${modeId}`);

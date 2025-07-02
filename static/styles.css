@@ -728,6 +728,51 @@ aside {
   color: #333;
   /* 他のスタイルは既存のものを継承 */
 }
+
+/* 問題に付随する画像のスタイル */
+.problem-image {
+    display: block; /* 画像をブロック要素として扱う */
+    max-width: 500px; /* PCでは最大幅を500pxに制限 */
+    height: auto;     /* 高さは自動調整 */
+    margin: 20px 0;   /* 画像の上下に余白を設ける */
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+/* ★追加: 選択モードのドロップダウンと入力欄のスタイル */
+.selection-mode select,
+.selection-mode input[type="number"] {
+  font-size: 1rem;      /* 文字サイズを大きく */
+  padding: 10px 8px;    /* 縦方向の余白を増やして高さを出す */
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background-color: white;
+}
+
+/* ★追加: 「前の問題」「問題を表示」「次の問題」のボタングループ */
+.main-button-group {
+    display: flex;
+    justify-content: center;
+    align-items: stretch; /* ボタンの高さを揃える */
+    gap: 10px;
+    margin: 20px 0;
+}
+
+/* 「問題を表示」ボタンの幅を基準にする */
+.main-button-group .main-action-button {
+    flex: 2; /* 「前の問題」「次の問題」の2倍の幅を持つ */
+    margin: 0; /* 個別のマージンをリセット */
+}
+
+/* 「前の問題」「次の問題」ボタンのスタイル */
+.main-button-group .prev-next-btn {
+    flex: 1; /* 「問題を表示」の半分の幅を持つ */
+    margin: 0;
+    background-color: #a0d8ef; /* 少し色を変えて区別 */
+}
+.main-button-group .prev-next-btn:hover {
+    background-color: #82c8e8;
+}
   
   /* ===== レスポンシブ対応 ===== */
   @media (max-width: 768px) {
@@ -827,6 +872,23 @@ aside {
       text-align: left;
       text-decoration: none;
       font-weight: bold;
+    }
+
+    .problem-image {
+        max-width: 100%; /* ★追加：スマホでは画面幅いっぱいに表示 */
+    }
+
+    .main-button-group {
+        flex-wrap: wrap; /* ボタンを折り返す */
+    }
+    .main-button-group .main-action-button {
+        width: 100%;     /* 「問題を表示」は1行を占有 */
+        order: 1;        /* 表示順を1番目にする */
+        flex-basis: 100%;
+    }
+    .main-button-group .prev-next-btn {
+        flex-basis: calc(50% - 5px); /* 「前の問題」「次の問題」で1行を分け合う */
+        order: 2;                    /* 表示順を2番目にする */
     }
   }
   

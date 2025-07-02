@@ -78,6 +78,24 @@ def get_problem_aochart():
                     (df_target.iloc[:, COL_PROBLEM_NUMBER].str.upper() == base_number)
                 )
                 similar_count += df_target[cond].shape[0]
+    
+    # ★ここから追加★
+    response_data = {
+        "unit_name": unit,
+        "problem_number": number,
+        "difficulty": difficulty,
+        "equation": equation,
+        "image_flag": image_flag,
+        "similar_count": similar_count
+    }
+
+    # image_flagが1の場合、画像のパスを生成してレスポンスに追加
+    if image_flag == 1:
+        subject = p.iloc[COL_SUBJECT_NAME] # 科目名を取得 (例: "数I", "数A")
+        book_prefix = "ex" if book == "ex" else "chart"
+        # ファイル名を構築 (例: static/images/chartI_123.png)
+        image_path = f"static/images/{book_prefix}{subject}_{number}.png"
+        response_data["image_path"] = image_path
 
     return jsonify({
         "unit_name": unit,
@@ -85,5 +103,6 @@ def get_problem_aochart():
         "difficulty": difficulty,
         "equation": equation,
         "image_flag": image_flag,
-        "similar_count": similar_count
+        "similar_count": similar_count,
+        "response_data": response_data
     })
