@@ -1,6 +1,9 @@
 /**
  * script.js
  * このアプリケーション全体の動作を制御する司令塔となるメインのJavaScriptファイルです。
+ * - 各モードの専用JSファイルをモジュールとして読み込みます。
+ * - 全てのモードで共通して使われる機能（ナビゲーション、アコーディオン初期化など）を管理します。
+ * - データベースからの類題表示機能、AIによる類題生成機能、選択モードのボタンなどのイベント処理を担当します。
  */
 
 // ===== モジュールの読み込み =====
@@ -9,17 +12,22 @@ import { getProblemFrom4step } from "/static/modes/random_4step.js";
 import { getSelectedProblem } from "/static/modes/selection.js";
 import { setupAccordion } from "/static/components/accordion.js";
 import { toggleHistory } from "/static/components/history.js";
+// ★修正：必要なヘルパー関数をすべてインポート
 import {
   formatDifficultyStars,
-  applyDisplayStyle,
   formatWithBreaks,
   sanitizeLatexEquation,
-  formatPunctuation, // formatPunctuationをインポート
+  formatPunctuation,
   getEquationSnippet
 } from "./utils/helpers.js";
 
 
 // ===== 共通ヘルパー関数 =====
+
+/**
+ * units.jsonから単元データを非同期で取得し、
+ * 選択モードのドロップダウンメニューを初期化します。
+ */
 function loadUnitOptionsFromJSON() {
   fetch("/static/data/units.json")
     .then(res => res.json())
@@ -40,6 +48,9 @@ function loadUnitOptionsFromJSON() {
     });
 }
 
+/**
+ * データベース（Excelファイル）から類題を検索し、表示します。
+ */
 window.showSimilarProblems = function (sourceMode, unitName, problemNumber, book) {
   const modeId = sourceMode === "selection" ? "selected" : (sourceMode === "aochart" ? "1" : "2");
   const container = document.getElementById(`similar_container-${modeId}`);
@@ -70,11 +81,21 @@ window.showSimilarProblems = function (sourceMode, unitName, problemNumber, book
       data.similar_problems.forEach((item, idx) => {
         const difficulty = item.book === "4step" ? item.difficulty : formatDifficultyStars(item.difficulty);
         const numberLabel = item.book === "ex" ? `EXERCISES ${item.problem_number}` : item.problem_number;
-        const formatted = applyDisplayStyle(formatWithBreaks(sanitizeLatexEquation(item.equation)));
+        // ★修正：applyDisplayStyleを削除し、formatPunctuationを追加
+        const formatted = formatWithBreaks(formatPunctuation(sanitizeLatexEquation(item.equation)));
         
         let imageHtml = '';
-        if (item.image_path) {
-            imageHtml = `<img src="${item.image_path}" class="problem-image" alt="類題の図">`;
+        if (item.image_paths && item.image_paths.length > 0) {
+            const gallery = document.createElement('div');
+            gallery.className = 'problem-image-gallery';
+            item.image_paths.forEach(path => {
+                const img = document.createElement('img');
+                img.src = path;
+                img.className = 'problem-image';
+                img.alt = '類題の図';
+                gallery.appendChild(img);
+            });
+            imageHtml = gallery.outerHTML;
         }
 
         const block = document.createElement("div");
@@ -92,11 +113,10 @@ window.showSimilarProblems = function (sourceMode, unitName, problemNumber, book
 };
 
 
-// ===== メイン処理（DOMContentLoadedで初期化） =====
+// ===== メイン処理（ページのDOM読み込み完了時に実行） =====
 document.addEventListener("DOMContentLoaded", () => {
   // --- アプリケーションの初期化 ---
   loadUnitOptionsFromJSON();
-  // ★修正：setupAccordion()の呼び出しを1回にまとめる
   setupAccordion();
 
   // --- グローバルに関数を登録 ---
@@ -132,6 +152,22 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
   document.getElementById('aochart').style.display = 'block';
+
+  // --- 選択モードの「前へ」「次へ」ボタンの処理 ---
+  const prevBtn = document.getElementById('prev-problem-btn');
+  const nextBtn = document.getElementById('next-problem-btn');
+  const numberInput = document.getElementById('problem_number_input');
+  prevBtn?.addEventListener('click', () => {
+      let num = parseInt(numberInput.value, 10);
+      if (isNaN(num) || num <= 1) return;
+      numberInput.value = num - 1;
+      getSelectedProblem();
+  });
+  nextBtn?.addEventListener('click', () => {
+      let num = parseInt(numberInput.value, 10);
+      numberInput.value = isNaN(num) ? 1 : num + 1;
+      getSelectedProblem();
+  });
 
   // --- AI類題生成機能のイベントリスナー設定 ---
   const generateBtn = document.getElementById('generate-ai-problem-btn');
@@ -176,8 +212,8 @@ document.addEventListener("DOMContentLoaded", () => {
               const result = await response.json();
               if (!response.ok || result.error) throw new Error(result.error || 'サーバーエラーが発生しました。');
               
-              const rawProblem = sanitizeLatexEquation(result.problem);
-              const formattedProblem = applyDisplayStyle(formatWithBreaks(rawProblem));
+              // ★修正：applyDisplayStyleを削除し、formatPunctuationを追加
+              const formattedProblem = formatWithBreaks(formatPunctuation(sanitizeLatexEquation(result.problem)));
               aiProblemContainer.innerHTML = `<div class="tex2jax_process">${formattedProblem}</div>`;
               MathJax.typesetPromise([aiProblemContainer]);
 
@@ -198,8 +234,9 @@ document.addEventListener("DOMContentLoaded", () => {
   if (answerBtn) {
       answerBtn.addEventListener('click', () => {
           if (aiGeneratedData.answer && aiGeneratedData.explanation) {
-              const formattedAnswer = applyDisplayStyle(formatWithBreaks(sanitizeLatexEquation(aiGeneratedData.answer)));
-              const formattedExplanation = applyDisplayStyle(formatWithBreaks(sanitizeLatexEquation(aiGeneratedData.explanation)));
+              // ★修正：applyDisplayStyleを削除し、formatPunctuationを追加
+              const formattedAnswer = formatWithBreaks(formatPunctuation(sanitizeLatexEquation(aiGeneratedData.answer)));
+              const formattedExplanation = formatWithBreaks(formatPunctuation(sanitizeLatexEquation(aiGeneratedData.explanation)));
               answerContainer.innerHTML = `<h4>答え</h4><div class="tex2jax_process">${formattedAnswer}</div><hr><h4>解説</h4><div class="tex2jax_process">${formattedExplanation}</div>`;
               answerContainer.style.display = 'block';
               MathJax.typesetPromise([answerContainer]);

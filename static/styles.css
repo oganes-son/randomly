@@ -773,6 +773,83 @@ aside {
 .main-button-group .prev-next-btn:hover {
     background-color: #82c8e8;
 }
+
+/* ====== フッターのスタイル ====== */
+.site-footer-contact {
+    font-family: 'Yomogi', cursive;
+    font-size: 0.8rem;
+    color: #555;
+    text-align: center;
+    padding: 30px 20px;
+    margin-top: 40px;
+    background-color: #f8f9fa;
+    border-top: 1px solid #e7e7e7;
+}
+.site-footer-contact .contact-info {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap; /* スマホで折り返すように */
+    justify-content: center;
+    gap: 10px 20px; /* 縦と横の隙間 */
+}
+.site-footer-contact a {
+    color: #007bff;
+    text-decoration: none;
+}
+.site-footer-contact a:hover {
+    text-decoration: underline;
+}
+
+/* ====== 画像ギャラリーのスタイル ====== */
+.problem-image-gallery {
+    display: flex;
+    flex-wrap: wrap; /* PCでも画面幅が足りなければ折り返す */
+    gap: 15px;
+    margin: 20px 0;
+}
+.problem-image-gallery .problem-image {
+    flex: 1 1 auto; /* 画像が自然な幅で並ぶように */
+    max-width: 48%; /* PCではおおよそ2列になるように */
+    margin: 0; /* 個別のマージンをリセット */
+}
+
+/* フッターのアイコンリンクのスタイル */
+.contact-icon {
+    text-decoration: none !important; /* 下線が表示されないようにする */
+}
+.contact-icon .fab.fa-instagram {
+    font-size: 1.5rem; /* アイコンのサイズを大きくする */
+    color: #555;      /* 通常のテキストと同じ色にする */
+    transition: color 0.3s ease; /* 色が滑らかに変わるアニメーション */
+    vertical-align: middle; /* テキストとの縦位置を微調整 */
+}
+/* アイコンにマウスを乗せたときの色を変更 */
+.contact-icon:hover .fab.fa-instagram {
+    color: #E1306C; /* Instagramのブランドカラー */
+}
+
+/* ボタンローディング中のスタイル */
+.main-action-button.is-loading {
+    color: transparent !important; /* 元のテキストを透明にする */
+    pointer-events: none; /* ローディング中はクリックを無効化 */
+    position: relative;
+}
+
+.main-action-button.is-loading::after {
+    content: '\f110'; /* Font Awesomeのスピナーアイコン (fa-spinner) */
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    font-size: 1.5rem;
+    color: white; /* スピナーの色 */
+
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+
+    /* アニメーション */
+    animation: fa-spin 1s infinite linear;
+}
   
   /* ===== レスポンシブ対応 ===== */
   @media (max-width: 768px) {
@@ -889,6 +966,24 @@ aside {
     .main-button-group .prev-next-btn {
         flex-basis: calc(50% - 5px); /* 「前の問題」「次の問題」で1行を分け合う */
         order: 2;                    /* 表示順を2番目にする */
+    }
+
+    /* ★追加: ログイン画面のスマホ対応 */
+    .login-container {
+        width: 90%;
+        margin-top: 40px;
+        padding: 20px;
+    }
+    .login-container h2 {
+        font-size: 1.2rem; /* h2のフォントサイズも調整 */
+    }
+
+    /* ★追加: 画像ギャラリーのスマホ対応 */
+    .problem-image-gallery {
+        flex-direction: column; /* 縦並びにする */
+    }
+    .problem-image-gallery .problem-image {
+        max-width: 100%; /* 横幅いっぱいに表示 */
     }
   }
   

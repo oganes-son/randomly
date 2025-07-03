@@ -44,10 +44,23 @@ def get_problem_aochart():
 
     response_data = {"unit_name": unit, "problem_number": number, "difficulty": difficulty, "equation": equation, "image_flag": image_flag, "similar_count": similar_count, "book": effective_book}
 
-    # ★修正：SUBJECT_MAPを削除し、Excelから取得した科目名を直接使用
-    if image_flag == 1:
-        subject = p.iloc[COL_SUBJECT_NAME] # "I", "A"などが直接入る
-        book_prefix = "ex" if effective_book == "ex" else "chart"
-        response_data["image_path"] = f"static/images/{book_prefix}{subject}_{number}.png"
+    # image_flagが1以上の場合、画像のパスリストを生成してレスポンスに追加
+    if image_flag > 0:
+        subject = p.iloc[COL_SUBJECT_NAME]
+        book_prefix = "step" if book == "4step" else ("ex" if book == "ex" else "chart")
+        
+        image_paths = []
+        if image_flag == 1:
+            # 画像が1枚の場合
+            path = f"static/images/{book_prefix}{subject}_{number}.png"
+            image_paths.append(path)
+        else:
+            # 画像が複数枚の場合 (例: 3枚なら1, 2, 3とループ)
+            for i in range(1, image_flag + 1):
+                path = f"static/images/{book_prefix}{subject}_{number}({i}).png"
+                image_paths.append(path)
+        
+        # ★修正: キーを複数形の `image_paths` に変更
+        response_data["image_paths"] = image_paths
     
     return jsonify(response_data)

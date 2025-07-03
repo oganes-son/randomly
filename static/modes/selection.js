@@ -1,13 +1,23 @@
+/**
+ * selection.js
+ * 「選択モード」に関するすべてのフロントエンド処理を担当します。
+ */
+
+// ===== モジュールの読み込み =====
 import {
   formatDifficultyStars,
   sanitizeLatexEquation,
   formatWithBreaks,
-  applyDisplayStyle
+  formatPunctuation
 } from "../utils/helpers.js";
 
+// このファイル内で使用する単元データを格納するためのグローバル変数
 let unitsData = {};
 
+// ===== メイン処理（ページのDOM読み込み完了時に一度だけ実行） =====
 document.addEventListener("DOMContentLoaded", () => {
+  // --- 初期化処理 ---
+  // units.jsonから単元データを非同期で取得し、ドロップダウンを初期化
   fetch("/static/data/units.json")
     .then(res => res.json())
     .then(data => {
@@ -18,56 +28,52 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("単元データの取得に失敗しました:", err);
     });
 
+  // --- イベントリスナーの設定 ---
+  // 必要なHTML要素への参照をまとめて取得
   const bookType = document.getElementById("select_book_type");
   const unitSelect = document.getElementById("unit_select_chart");
+  const prevBtn = document.getElementById('prev-problem-btn');
+  const nextBtn = document.getElementById('next-problem-btn');
+  const numberInput = document.getElementById('problem_number_input');
 
+  // 各要素にイベントリスナーを設定
   bookType?.addEventListener("change", populateUnitOptions);
   unitSelect?.addEventListener("change", updateNumberRangeHint);
+
+  // 「前の問題」ボタンがクリックされた時の処理
+  prevBtn?.addEventListener('click', () => {
+      let currentNumber = parseInt(numberInput.value, 10);
+      if (isNaN(currentNumber) || currentNumber <= 1) {
+          return; 
+      }
+      numberInput.value = currentNumber - 1;
+      getSelectedProblem();
+  });
+
+  // 「次の問題」ボタンがクリックされた時の処理
+  nextBtn?.addEventListener('click', () => {
+      let currentNumber = parseInt(numberInput.value, 10);
+      numberInput.value = isNaN(currentNumber) ? 1 : currentNumber + 1;
+      getSelectedProblem();
+  });
 });
 
-// ★修正: DOMContentLoadedイベントリスナーを追加し、ボタンの処理を記述
-document.addEventListener("DOMContentLoaded", () => {
-    const prevBtn = document.getElementById('prev-problem-btn');
-    const nextBtn = document.getElementById('next-problem-btn');
-    const numberInput = document.getElementById('problem_number_input');
-
-    // 「前の問題」ボタンがクリックされた時の処理
-    prevBtn?.addEventListener('click', () => {
-        let currentNumber = parseInt(numberInput.value, 10);
-        // 数値でない、または1以下の場合は何もしない
-        if (isNaN(currentNumber) || currentNumber <= 1) {
-            return; 
-        }
-        numberInput.value = currentNumber - 1;
-        // 問題取得関数を呼び出す
-        getSelectedProblem();
-    });
-
-    // 「次の問題」ボタンがクリックされた時の処理
-    nextBtn?.addEventListener('click', () => {
-        let currentNumber = parseInt(numberInput.value, 10);
-        // 数値でない場合は1として扱う
-        if (isNaN(currentNumber)) {
-            currentNumber = 0;
-        }
-        numberInput.value = currentNumber + 1;
-        // 問題取得関数を呼び出す
-        getSelectedProblem();
-    });
-});
-
+/**
+ * 問題集の選択（青チャート／EXERCISES／4step）に応じて、
+ * 単元選択ドロップダウンの中身を動的に更新します。
+ */
 function populateUnitOptions() {
   const book = document.getElementById("select_book_type")?.value;
   const unitSelect = document.getElementById("unit_select_chart");
   if (!book || !unitSelect || !unitsData) return;
 
-  unitSelect.innerHTML = "";
+  unitSelect.innerHTML = ""; // 中身を一度クリア
 
   let list;
   if (book === 'ex') {
     list = unitsData.ex;
   } else if (book === '4step') {
-    list = unitsData['4step']; 
+    list = unitsData['4step'];
   } else {
     list = unitsData.chart;
   }
@@ -80,10 +86,12 @@ function populateUnitOptions() {
       unitSelect.appendChild(option);
     });
   }
-
   updateNumberRangeHint();
 }
 
+/**
+ * 単元の選択に応じて、問題番号入力欄のヒント（placeholder）を更新します。
+ */
 function updateNumberRangeHint() {
   const book = document.getElementById("select_book_type")?.value;
   const unit = document.getElementById("unit_select_chart")?.value;
@@ -103,80 +111,86 @@ function updateNumberRangeHint() {
   input.placeholder = found?.range ? `例: ${found.range}` : "問題番号を入力";
 }
 
+/**
+ * 「問題を表示」ボタンがクリックされたときに実行されるメインの関数です。
+ * サーバーに問い合わせて問題データを取得し、画面に表示します。
+ */
 export function getSelectedProblem() {
+  const button = document.querySelector(`#selection .main-button-group .main-action-button`);
+  const prevBtn = document.getElementById('prev-problem-btn');
+  const nextBtn = document.getElementById('next-problem-btn');
+
   const book = document.getElementById("select_book_type")?.value;
   const unit = document.getElementById("unit_select_chart")?.value;
   const number = document.getElementById("problem_number_input")?.value;
+  if (!unit || !number) { alert("単元と問題番号を入力してください"); return; }
 
-  if (!unit || !number) {
-    alert("単元と問題番号を入力してください");
-    return;
-  }
+  // --- ローディング表示開始 ---
+  if(button) { button.classList.add('is-loading'); button.disabled = true; }
+  if(prevBtn) prevBtn.disabled = true;
+  if(nextBtn) nextBtn.disabled = true;
 
   fetch("/get_selected_problem", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ book, unit, number })
   })
-    .then(res => res.json())
-    .then(data => {
-      if (data.error) {
-        alert(data.error);
-        return;
-      }
-      
-      const similarContainer = document.getElementById('similar_container-selected');
-      const aiProblemArea = document.getElementById('ai-generated-problem-area');
-      
-      if(similarContainer) similarContainer.style.display = 'none';
-      if(aiProblemArea) aiProblemArea.style.display = 'none';
-      
-      const numberLabel = book === "ex" ? `EXERCISES ${data.problem_number}` : (book === "4step" ? `4step ${data.problem_number}` : data.problem_number);
-      document.getElementById("selected_problem_number").innerText = numberLabel;
-      document.getElementById("selected_difficulty_display").innerText = formatDifficultyStars(data.difficulty);
-      
-      const container = document.getElementById("selected_equation_container");
-      const raw = sanitizeLatexEquation(data.equation);
-      const formatted = applyDisplayStyle(formatWithBreaks(raw));
-      container.innerHTML = `<div class="tex2jax_process">${formatted}</div>`;
-      MathJax.typesetPromise([container]);
-      
-      window.RANDOMLY_APP_DATA = { equation: data.equation };
+  .then(res => res.json())
+  .then(data => {
+    if (data.error) { alert(data.error); return; }
+    
+    // UIを初期状態にリセット
+    document.getElementById('similar_container-selected').style.display = 'none';
+    document.getElementById('ai-generated-problem-area').style.display = 'none';
+    
+    const container = document.getElementById("selected_equation_container");
+    container.innerHTML = ''; // 表示前にコンテナをクリア
 
-      const aiButton = document.getElementById('generate-ai-problem-btn');
-      if (aiButton) aiButton.style.display = 'inline-block';
+    // 問題文を整形して表示
+    const formatted = formatWithBreaks(formatPunctuation(sanitizeLatexEquation(data.equation)));
+    const problemDiv = document.createElement('div');
+    problemDiv.className = 'tex2jax_process';
+    problemDiv.innerHTML = formatted;
+    container.appendChild(problemDiv);
 
-      const similarBtn = document.getElementById('similar_button-selected');
-      if (similarBtn) {
-          if (data.similar_count > 0) {
-              similarBtn.style.display = 'inline-block';
-              similarBtn.textContent = `類題を見る（${data.similar_count}問）`;
+    // ★修正：複数画像のパスリスト(image_paths)を処理
+    if (data.image_paths && data.image_paths.length > 0) {
+        const gallery = document.createElement('div');
+        gallery.className = 'problem-image-gallery';
+        data.image_paths.forEach(path => {
+            const img = document.createElement('img');
+            img.src = path;
+            img.className = 'problem-image';
+            img.alt = '問題の図';
+            gallery.appendChild(img);
+        });
+        container.appendChild(gallery);
+    }
 
-              // ★★★ここから修正★★★
-              // 「類題を見る」ボタンがクリックされた時の動作を定義します。
-              // この設定により、どの問題集が選択されていても、
-              // script.js内のshowSimilarProblems関数が呼び出されます。
-              similarBtn.onclick = () => {
-                // app.pyの類題検索APIを呼び出すための情報を渡します。
-                // bookが '4step' の場合、バックエンド(app.py)は
-                // 4stepの問題から青チャート/EXの類題を探すロジック（4stepランダムモードと同様の機構）を
-                // 実行するように設計されています。
-                window.showSimilarProblems(
-                  "selection",          // 呼び出し元モード
-                  data.unit_name,       // 単元名
-                  data.problem_number,  // 問題番号
-                  book                  // 問題集の種類 ('4step'など)
-                );
-              };
-              // ★★★ここまで修正★★★
+    MathJax.typesetPromise([container]); // 数式をレンダリング
 
-          } else {
-              similarBtn.style.display = 'none';
-          }
-      }
-    })
-    .catch(err => {
-      console.error(err);
-      alert("問題の取得中にエラーが発生しました。");
-    });
+    // 問題詳細やボタンの表示を更新
+    const numberLabel = book === "ex" ? `EXERCISES ${data.problem_number}` : (book === "4step" ? `4step ${data.problem_number}` : data.problem_number);
+    document.getElementById("selected_problem_number").innerText = numberLabel;
+    document.getElementById("selected_difficulty_display").innerText = formatDifficultyStars(data.difficulty);
+    
+    window.RANDOMLY_APP_DATA = { equation: data.equation };
+
+    document.getElementById('generate-ai-problem-btn').style.display = 'inline-block';
+    const similarBtn = document.getElementById('similar_button-selected');
+    if (data.similar_count > 0) {
+        similarBtn.style.display = 'inline-block';
+        similarBtn.textContent = `類題を見る（${data.similar_count}問）`;
+        similarBtn.onclick = () => window.showSimilarProblems("selection", data.unit_name, data.problem_number, book);
+    } else {
+        similarBtn.style.display = 'none';
+    }
+  })
+  .catch(err => { console.error(err); alert("問題の取得中にエラーが発生しました。"); })
+  .finally(() => {
+    // --- ローディング表示終了 ---
+    if(button) { button.classList.remove('is-loading'); button.disabled = false; }
+    if(prevBtn) prevBtn.disabled = false;
+    if(nextBtn) nextBtn.disabled = false;
+  });
 }
