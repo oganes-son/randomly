@@ -842,10 +842,19 @@ aside {
     font-size: 1.5rem;
     color: white; /* スピナーの色 */
 
+    /* より堅牢な中央揃えの方法に変更 */
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: auto; /* 上下左右の余白を自動で均等にする */
+    
+    /* アイコン自体のサイズと行の高さを指定して、ズレを防ぐ */
+    width: 1.5rem; 
+    height: 1.5rem;
+    line-height: 1.5rem;
+    text-align: center;
 
     /* アニメーション */
     animation: fa-spin 1s infinite linear;
