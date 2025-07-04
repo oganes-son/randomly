@@ -1,9 +1,6 @@
 /**
  * script.js
  * このアプリケーション全体の動作を制御する司令塔となるメインのJavaScriptファイルです。
- * - 各モードの専用JSファイルをモジュールとして読み込みます。
- * - 全てのモードで共通して使われる機能（ナビゲーション、アコーディオン初期化など）を管理します。
- * - データベースからの類題表示機能、AIによる類題生成機能、選択モードのボタンなどのイベント処理を担当します。
  */
 
 // ===== モジュールの読み込み =====
@@ -12,7 +9,6 @@ import { getProblemFrom4step } from "/static/modes/random_4step.js";
 import { getSelectedProblem } from "/static/modes/selection.js";
 import { setupAccordion } from "/static/components/accordion.js";
 import { toggleHistory } from "/static/components/history.js";
-// ★修正：必要なヘルパー関数をすべてインポート
 import {
   formatDifficultyStars,
   formatWithBreaks,
@@ -23,11 +19,6 @@ import {
 
 
 // ===== 共通ヘルパー関数 =====
-
-/**
- * units.jsonから単元データを非同期で取得し、
- * 選択モードのドロップダウンメニューを初期化します。
- */
 function loadUnitOptionsFromJSON() {
   fetch("/static/data/units.json")
     .then(res => res.json())
@@ -48,9 +39,6 @@ function loadUnitOptionsFromJSON() {
     });
 }
 
-/**
- * データベース（Excelファイル）から類題を検索し、表示します。
- */
 window.showSimilarProblems = function (sourceMode, unitName, problemNumber, book) {
   const modeId = sourceMode === "selection" ? "selected" : (sourceMode === "aochart" ? "1" : "2");
   const container = document.getElementById(`similar_container-${modeId}`);
@@ -81,7 +69,6 @@ window.showSimilarProblems = function (sourceMode, unitName, problemNumber, book
       data.similar_problems.forEach((item, idx) => {
         const difficulty = item.book === "4step" ? item.difficulty : formatDifficultyStars(item.difficulty);
         const numberLabel = item.book === "ex" ? `EXERCISES ${item.problem_number}` : item.problem_number;
-        // ★修正：applyDisplayStyleを削除し、formatPunctuationを追加
         const formatted = formatWithBreaks(formatPunctuation(sanitizeLatexEquation(item.equation)));
         
         let imageHtml = '';
@@ -118,6 +105,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // --- アプリケーションの初期化 ---
   loadUnitOptionsFromJSON();
   setupAccordion();
+  setupCheckboxSync(); // ★追加
 
   // --- グローバルに関数を登録 ---
   window.getProblem = (modeId) => {
@@ -212,7 +200,6 @@ document.addEventListener("DOMContentLoaded", () => {
               const result = await response.json();
               if (!response.ok || result.error) throw new Error(result.error || 'サーバーエラーが発生しました。');
               
-              // ★修正：applyDisplayStyleを削除し、formatPunctuationを追加
               const formattedProblem = formatWithBreaks(formatPunctuation(sanitizeLatexEquation(result.problem)));
               aiProblemContainer.innerHTML = `<div class="tex2jax_process">${formattedProblem}</div>`;
               MathJax.typesetPromise([aiProblemContainer]);
@@ -234,7 +221,6 @@ document.addEventListener("DOMContentLoaded", () => {
   if (answerBtn) {
       answerBtn.addEventListener('click', () => {
           if (aiGeneratedData.answer && aiGeneratedData.explanation) {
-              // ★修正：applyDisplayStyleを削除し、formatPunctuationを追加
               const formattedAnswer = formatWithBreaks(formatPunctuation(sanitizeLatexEquation(aiGeneratedData.answer)));
               const formattedExplanation = formatWithBreaks(formatPunctuation(sanitizeLatexEquation(aiGeneratedData.explanation)));
               answerContainer.innerHTML = `<h4>答え</h4><div class="tex2jax_process">${formattedAnswer}</div><hr><h4>解説</h4><div class="tex2jax_process">${formattedExplanation}</div>`;
@@ -243,5 +229,40 @@ document.addEventListener("DOMContentLoaded", () => {
               answerBtn.style.display = 'none';
           }
       });
+  }
+
+  /**
+   * ★追加：単元選択アコーディオンの親スイッチと子スイッチのON/OFFを連動させる機能を設定します。
+   */
+  function setupCheckboxSync() {
+    // --- 親スイッチが変更された時の処理 ---
+    document.querySelectorAll('.unit-toggle').forEach(parentCheckbox => {
+      parentCheckbox.addEventListener('change', () => {
+        // 親がONなら子もON、親がOFFなら子もOFFにする
+        const targetId = parentCheckbox.dataset.target;
+        const contentDiv = document.getElementById(targetId);
+        if (contentDiv) {
+          contentDiv.querySelectorAll('.unit-checkbox').forEach(childCheckbox => {
+            childCheckbox.checked = parentCheckbox.checked;
+          });
+        }
+      });
+    });
+
+    // --- 子スイッチが変更された時の処理 ---
+    // .accordionの中にある.unit-checkboxに限定して、難易度選択のチェックボックスと区別する
+    document.querySelectorAll('.accordion .unit-checkbox').forEach(childCheckbox => {
+      childCheckbox.addEventListener('change', () => {
+        const contentDiv = childCheckbox.closest('.content');
+        if (contentDiv) {
+          const allChildren = contentDiv.querySelectorAll('.unit-checkbox');
+          const parentCheckbox = document.querySelector(`.unit-toggle[data-target="${contentDiv.id}"]`);
+          if (parentCheckbox) {
+            // 子スイッチが「すべてON」の場合のみ、親スイッチをONにする
+            parentCheckbox.checked = Array.from(allChildren).every(child => child.checked);
+          }
+        }
+      });
+    });
   }
 });
