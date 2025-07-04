@@ -807,10 +807,15 @@ aside {
     gap: 15px;
     margin: 20px 0;
 }
+
 .problem-image-gallery .problem-image {
-    flex: 1 1 auto; /* 画像が自然な幅で並ぶように */
-    max-width: 48%; /* PCではおおよそ2列になるように */
-    margin: 0; /* 個別のマージンをリセット */
+  flex: 1 1 auto;
+  max-width: 48%;
+  margin: 0;
+  height: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  object-fit: contain; /* ★追加：画像の比率を維持したままコンテナに収める */
 }
 
 /* フッターのアイコンリンクのスタイル */
@@ -859,6 +864,16 @@ aside {
     /* アニメーション */
     animation: fa-spin 1s infinite linear;
 }
+
+  /* ★追加: ログイン画面の注釈テキストのスタイル */
+.login-note {
+    margin-top: 20px;
+    font-size: 0.8rem;
+    color: #6c757d; /* 少し薄いグレー */
+    text-align: center;
+    line-height: 1.5;
+}
+
   
   /* ===== レスポンシブ対応 ===== */
   @media (max-width: 768px) {

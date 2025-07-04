@@ -8,7 +8,7 @@ import {
   formatDifficultyStars,
   sanitizeLatexEquation,
   formatWithBreaks,
-  formatPunctuation
+  formatPunctuation // applyDisplayStyleは不要なので削除
 } from "../utils/helpers.js";
 
 // このファイル内で使用する単元データを格納するためのグローバル変数
@@ -116,7 +116,7 @@ function updateNumberRangeHint() {
  * サーバーに問い合わせて問題データを取得し、画面に表示します。
  */
 export function getSelectedProblem() {
-  const button = document.querySelector(`#selection .main-button-group .main-action-button`);
+  const mainButton = document.querySelector(`#selection .main-button-group .main-action-button`);
   const prevBtn = document.getElementById('prev-problem-btn');
   const nextBtn = document.getElementById('next-problem-btn');
 
@@ -126,7 +126,7 @@ export function getSelectedProblem() {
   if (!unit || !number) { alert("単元と問題番号を入力してください"); return; }
 
   // --- ローディング表示開始 ---
-  if(button) { button.classList.add('is-loading'); button.disabled = true; }
+  if(mainButton) { mainButton.classList.add('is-loading'); mainButton.disabled = true; }
   if(prevBtn) prevBtn.disabled = true;
   if(nextBtn) nextBtn.disabled = true;
 
@@ -153,7 +153,7 @@ export function getSelectedProblem() {
     problemDiv.innerHTML = formatted;
     container.appendChild(problemDiv);
 
-    // ★修正：複数画像のパスリスト(image_paths)を処理
+    // 複数画像のパスリスト(image_paths)を処理
     if (data.image_paths && data.image_paths.length > 0) {
         const gallery = document.createElement('div');
         gallery.className = 'problem-image-gallery';
@@ -189,7 +189,7 @@ export function getSelectedProblem() {
   .catch(err => { console.error(err); alert("問題の取得中にエラーが発生しました。"); })
   .finally(() => {
     // --- ローディング表示終了 ---
-    if(button) { button.classList.remove('is-loading'); button.disabled = false; }
+    if(mainButton) { mainButton.classList.remove('is-loading'); mainButton.disabled = false; }
     if(prevBtn) prevBtn.disabled = false;
     if(nextBtn) nextBtn.disabled = false;
   });
