@@ -64,7 +64,7 @@ def index():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     """ログイン処理を行う。"""
-    if request.method == "POST" and request.form.get("password") == "sugaku":
+    if request.method == "POST" and request.form.get("password") == "sankutopeteruburuku":
         session["logged_in"] = True
         return redirect(url_for("home"))
     return render_template("login.html", error="password" in request.form)
