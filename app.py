@@ -1,13 +1,12 @@
 import os
 import json
 import unicodedata
+import requests
 import pandas as pd
 from dotenv import load_dotenv
 from flask import Flask, render_template, redirect, session, request, url_for, jsonify
-import google.generativeai as genai
 
 # --- 1. 初期設定：.envファイルの読み込み ---
-# このファイルの絶対パスを基準に.envファイルの場所を特定し、確実に読み込みます
 project_folder = os.path.dirname(os.path.abspath(__file__))
 dotenv_path = os.path.join(project_folder, '.env')
 load_dotenv(dotenv_path=dotenv_path)
@@ -16,14 +15,8 @@ load_dotenv(dotenv_path=dotenv_path)
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "randemy-dev-secret-key")
 
-# --- 3. Gemini APIキーの設定 ---
-# .envファイルから読み込まれた環境変数を取得します
-api_key = os.environ.get("GEMINI_API_KEY")
-if api_key:
-    genai.configure(api_key=api_key)
-    print("情報: Gemini APIキーが正常に設定されました。")
-else:
-    print("警告: 環境変数 'GEMINI_API_KEY' が設定されていません。AI機能は利用できません。")
+# --- 3. Gemini APIキー ---
+_GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
 # --- 4. Blueprintの登録 ---
 # FlaskアプリとAPIキーが設定された後に、各モジュールをインポートします
@@ -228,14 +221,24 @@ def generate_similar_problem():
 # 元の問題文:
 {original_problem}
 """
+    if not _GEMINI_API_KEY:
+        return jsonify({"error": "GEMINI_API_KEY が設定されていません。"}), 500
+
+    url = (
+        "https://generativelanguage.googleapis.com/v1beta/models/"
+        f"gemini-1.5-flash-latest:generateContent?key={_GEMINI_API_KEY}"
+    )
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {"responseMimeType": "application/json"},
+    }
     MAX_RETRIES = 3
     for attempt in range(MAX_RETRIES):
         try:
-            model = genai.GenerativeModel('gemini-1.5-flash-latest')
-            generation_config = genai.types.GenerationConfig(response_mime_type="application/json")
-            response = model.generate_content(prompt, generation_config=generation_config)
-            response_text = response.text.replace('¥', '\\')
-            return json.loads(response_text)
+            resp = requests.post(url, json=payload, timeout=30)
+            resp.raise_for_status()
+            text = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
+            return json.loads(text.replace('¥', '\\'))
         except Exception as e:
             print(f"AI生成試行 {attempt + 1}/{MAX_RETRIES} 回目失敗: {e}")
             if attempt + 1 == MAX_RETRIES:
