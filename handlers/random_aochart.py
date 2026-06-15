@@ -15,7 +15,10 @@ def load_df(path):
     df = pd.read_excel(path, dtype=str)
     return df.map(lambda x: str(x).strip() if pd.notna(x) else "")
 
-df_chart, df_ex, df_4step = load_df("aochart.xlsx"), load_df("aochart_ex.xlsx"), load_df("4step.xlsx")
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+df_chart = load_df(os.path.join(_ROOT, "aochart.xlsx"))
+df_ex    = load_df(os.path.join(_ROOT, "aochart_ex.xlsx"))
+df_4step = load_df(os.path.join(_ROOT, "4step.xlsx"))
 
 @aochart_bp.route("/get_problem", methods=["POST"])
 def get_problem_aochart():

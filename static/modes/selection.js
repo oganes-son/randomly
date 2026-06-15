@@ -8,7 +8,7 @@ import {
   formatDifficultyStars,
   sanitizeLatexEquation,
   formatWithBreaks,
-  formatPunctuation // applyDisplayStyleは不要なので削除
+  formatPunctuation
 } from "../utils/helpers.js";
 
 // このファイル内で使用する単元データを格納するためのグローバル変数
@@ -113,7 +113,6 @@ function updateNumberRangeHint() {
 
 /**
  * 「問題を表示」ボタンがクリックされたときに実行されるメインの関数です。
- * サーバーに問い合わせて問題データを取得し、画面に表示します。
  */
 export function getSelectedProblem() {
   const mainButton = document.querySelector(`#selection .main-button-group .main-action-button`);
@@ -139,21 +138,18 @@ export function getSelectedProblem() {
   .then(data => {
     if (data.error) { alert(data.error); return; }
     
-    // UIを初期状態にリセット
     document.getElementById('similar_container-selected').style.display = 'none';
     document.getElementById('ai-generated-problem-area').style.display = 'none';
     
     const container = document.getElementById("selected_equation_container");
-    container.innerHTML = ''; // 表示前にコンテナをクリア
+    container.innerHTML = '';
 
-    // 問題文を整形して表示
     const formatted = formatWithBreaks(formatPunctuation(sanitizeLatexEquation(data.equation)));
     const problemDiv = document.createElement('div');
     problemDiv.className = 'tex2jax_process';
     problemDiv.innerHTML = formatted;
     container.appendChild(problemDiv);
 
-    // 複数画像のパスリスト(image_paths)を処理
     if (data.image_paths && data.image_paths.length > 0) {
         const gallery = document.createElement('div');
         gallery.className = 'problem-image-gallery';
@@ -167,9 +163,8 @@ export function getSelectedProblem() {
         container.appendChild(gallery);
     }
 
-    MathJax.typesetPromise([container]); // 数式をレンダリング
+    MathJax.typesetPromise([container]);
 
-    // 問題詳細やボタンの表示を更新
     const numberLabel = book === "ex" ? `EXERCISES ${data.problem_number}` : (book === "4step" ? `4step ${data.problem_number}` : data.problem_number);
     document.getElementById("selected_problem_number").innerText = numberLabel;
     document.getElementById("selected_difficulty_display").innerText = formatDifficultyStars(data.difficulty);

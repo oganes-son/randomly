@@ -14,7 +14,7 @@ load_dotenv(dotenv_path=dotenv_path)
 
 # --- 2. Flaskアプリケーションの初期化 ---
 app = Flask(__name__)
-app.secret_key = os.urandom(24)
+app.secret_key = os.environ.get("SECRET_KEY", "randemy-dev-secret-key")
 
 # --- 3. Gemini APIキーの設定 ---
 # .envファイルから読み込まれた環境変数を取得します
@@ -92,9 +92,9 @@ def get_similar_problems():
     book = data.get("book", "chart")
     
     try:
-        df_chart = load_df("aochart.xlsx")
-        df_ex = load_df("aochart_ex.xlsx")
-        df_4step = load_df("4step.xlsx")
+        df_chart = load_df(os.path.join(project_folder, "aochart.xlsx"))
+        df_ex = load_df(os.path.join(project_folder, "aochart_ex.xlsx"))
+        df_4step = load_df(os.path.join(project_folder, "4step.xlsx"))
     except FileNotFoundError as e:
         print(f"エラー: {e}")
         return jsonify({"error": "サーバー側でデータファイルが見つかりません。"}), 500

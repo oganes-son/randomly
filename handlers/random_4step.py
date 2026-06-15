@@ -29,7 +29,8 @@ def load_df(path):
     return df.map(lambda x: str(x).strip() if pd.notna(x) else "")
 
 # --- データ読み込み ---
-df_step = load_df("4step.xlsx")
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+df_step = load_df(os.path.join(_ROOT, "4step.xlsx"))
 
 @step4_bp.route("/get_problem_4step", methods=["POST"])
 def get_problem_4step():
